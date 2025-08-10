@@ -24,29 +24,29 @@ const { chromium } = require('playwright-chromium');
     // --- 2. ログイン処理 ---
     console.log('ログインページに移動します...');
     await page.goto('https://secure.xserver.ne.jp/xapanel/login/xmgame');
-
-    // いただいたHTML情報に基づいてセレクターを修正
+    
     await page.locator('#memberid').fill(email);
     await page.locator('#user_password').fill(password);
     await page.locator('input[value="ログインする"]').click();
     console.log('✅ ログイン成功');
 
     // --- 3. 延長処理の実行 ---
-    await page.waitForURL('**/server/list');
+    
+    // ★★★ ここを変更 ★★★
+    // 実際に表示されたページのURLを待つように修正
+    await page.waitForURL('**/xmgame/index');
+    
     console.log('サーバー一覧ページに移動しました。');
-    // "ゲーム管理" というテキストを持つリンクをクリック
     await page.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('✅ ゲーム管理ボタンをクリック');
 
     await page.waitForURL('**/server/detail/**');
-    // "アップグレード・期限延長" というテキストを持つリンクをクリック
     await page.getByRole('link', { name: 'アップグレード・期限延長' }).click();
     console.log('✅ アップグレード・期限延長ボタンをクリック');
     
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
-    // "期限を延長する" というテキストを持つリンク (1回目)
     const extendButton1 = page.getByRole('link', { name: '期限を延長する' });
     const cannotExtendText = page.getByText('期間の延長は行えません');
 
@@ -55,13 +55,11 @@ const { chromium } = require('playwright-chromium');
       console.log('延長ボタン(1/3)が見つかりました。クリックします...');
       await extendButton1.click();
       
-      // "確認画面に進む" という名前のボタン
       const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
       await confirmButton.waitFor({ state: 'visible' });
       await confirmButton.click();
       console.log('✅ 確認画面に進むボタン(2/3)をクリックしました。');
 
-      // "期限を延長する" という名前のボタン (最後)
       const finalExtendButton = page.getByRole('button', { name: '期限を延長する' });
       await finalExtendButton.waitFor({ state: 'visible' });
       await finalExtendButton.scrollIntoViewIfNeeded();
