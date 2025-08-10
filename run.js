@@ -1,5 +1,4 @@
 const { chromium } = require('playwright-chromium');
-// const fetch = require('node-fetch');
 
 async function notifyDiscord(fetch, status, message) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
@@ -41,7 +40,6 @@ async function notifyDiscord(fetch, status, message) {
 
 
 (async () => {
-  // ★★★ ここで新しい方法で fetch を呼び出す ★★★
   const { default: fetch } = await import('node-fetch');
   
   let browser = null;
@@ -83,12 +81,20 @@ async function notifyDiscord(fetch, status, message) {
     await page.waitForURL('**/game/freeplan/extend/index');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
-    const extendButton1 = page.getByRole('link', { name: '期限を延長する' });
-    const cannotExtendText = page.getByText('期間の延長は行えません');
+    console.log('延長可能か、または延長不可メッセージがあるかを確認します...');
+    const extendButtonLocator = page.getByRole('link', { name: '期限を延長する' });
+    const cannotExtendLocator = page.getByText('期間の延長は行えません');
 
-    if (await extendButton1.isVisible()) {
+    // 「延長ボタン」か「延長不可メッセージ」のどちらかが表示されるまで待つ
+    await Promise.race([
+        extendButtonLocator.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {}),
+        cannotExtendLocator.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+    ]);
+
+    // どちらが表示されたかを判断する
+    if (await extendButtonLocator.isVisible()) {
       console.log('延長ボタン(1/3)が見つかりました。クリックします...');
-      await extendButton1.click();
+      await extendButtonLocator.click();
       
       await page.waitForURL('**/game/freeplan/extend/input');
       const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
@@ -106,20 +112,20 @@ async function notifyDiscord(fetch, status, message) {
       await page.waitForLoadState('domcontentloaded');
       const successMessage = 'サーバー期間の延長が完了しました！';
       console.log(`🎉🎉🎉 ${successMessage}`);
-      await notifyDiscord(fetch, '🎉成功🎉', successMessage); // fetchを渡す
+      await notifyDiscord(fetch, '🎉成功🎉', successMessage);
 
-    } else if (await cannotExtendText.isVisible()) {
+    } else if (await cannotExtendLocator.isVisible()) {
       const infoMessage = 'まだ延長可能な期間ではありません。処理をスキップします。';
       console.log(`🟡 ${infoMessage}`);
-      await notifyDiscord(fetch, '🟡情報🟡', infoMessage); // fetchを渡す
+      await notifyDiscord(fetch, '🟡情報🟡', infoMessage);
     } else {
-      throw new Error('予期しないページ状態です。延長ボタンまたはメッセージが見つかりませんでした。');
+      throw new Error('予期しないページ状態です。延長ボタンまたは延長不可メッセージが見つかりませんでした。');
     }
-
+    
   } catch (error) {
     const errorMessage = `エラーが発生しました: ${error.message}`;
     console.error(`❌ ${errorMessage}`);
-    await notifyDiscord(fetch, '❌失敗❌', errorMessage); // fetchを渡す
+    await notifyDiscord(fetch, '❌失敗❌', errorMessage);
     process.exit(1);
   } finally {
     if (context) {
