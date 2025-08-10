@@ -1,7 +1,7 @@
 const { chromium } = require('playwright-chromium');
-const fetch = require('node-fetch');
+// const fetch = require('node-fetch');
 
-async function notifyDiscord(status, message) {
+async function notifyDiscord(fetch, status, message) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) {
     console.log('Discord Webhook URLが設定されていないため、通知をスキップします。');
@@ -39,7 +39,11 @@ async function notifyDiscord(status, message) {
   }
 }
 
+
 (async () => {
+  // ★★★ ここで新しい方法で fetch を呼び出す ★★★
+  const { default: fetch } = await import('node-fetch');
+  
   let browser = null;
   let context = null;
   console.log('🚀 自動化プロセスを開始します...');
@@ -102,12 +106,12 @@ async function notifyDiscord(status, message) {
       await page.waitForLoadState('domcontentloaded');
       const successMessage = 'サーバー期間の延長が完了しました！';
       console.log(`🎉🎉🎉 ${successMessage}`);
-      await notifyDiscord('🎉成功🎉', successMessage);
+      await notifyDiscord(fetch, '🎉成功🎉', successMessage); // fetchを渡す
 
     } else if (await cannotExtendText.isVisible()) {
       const infoMessage = 'まだ延長可能な期間ではありません。処理をスキップします。';
       console.log(`🟡 ${infoMessage}`);
-      await notifyDiscord('🟡情報🟡', infoMessage);
+      await notifyDiscord(fetch, '🟡情報🟡', infoMessage); // fetchを渡す
     } else {
       throw new Error('予期しないページ状態です。延長ボタンまたはメッセージが見つかりませんでした。');
     }
@@ -115,7 +119,7 @@ async function notifyDiscord(status, message) {
   } catch (error) {
     const errorMessage = `エラーが発生しました: ${error.message}`;
     console.error(`❌ ${errorMessage}`);
-    await notifyDiscord('❌失敗❌', errorMessage);
+    await notifyDiscord(fetch, '❌失敗❌', errorMessage); // fetchを渡す
     process.exit(1);
   } finally {
     if (context) {
