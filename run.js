@@ -1,52 +1,129 @@
-name: Extend XServer GAMES Server
+const { chromium } = require('playwright-chromium');
+const fetch = require('node-fetch');
 
-on:
-  schedule:
-    - cron: '0 12 * * *'
-  
-  workflow_dispatch:
+async function notifyDiscord(status, message) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.log('Discord Webhook URLが設定されていないため、通知をスキップします。');
+    return;
+  }
 
-jobs:
-  extend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  const color = {
+    '🎉成功🎉': 65280, // 緑
+    '🟡情報🟡': 16776960, // 黄
+    '❌失敗❌': 16711680, // 赤
+  }[status] || 8421504; // グレー
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+  const body = {
+    embeds: [{
+      title: `XServer GAMES 自動延長 (${status})`,
+      description: message,
+      color: color,
+      timestamp: new Date(),
+    }],
+  };
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (response.ok) {
+      console.log('✅ Discordへの通知が成功しました。');
+    } else {
+      console.error(`❌ Discordへの通知に失敗しました: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('❌ Discord通知中にエラーが発生しました:', error.message);
+  }
+}
+
+(async () => {
+  let browser = null;
+  let context = null;
+  console.log('🚀 自動化プロセスを開始します...');
+
+  try {
+    const email = process.env.XSERVER_EMAIL;
+    const password = process.env.XSERVER_PASSWORD;
+
+    if (!email || !password) {
+      throw new Error('シークレット XSERVER_EMAIL または XSERVER_PASSWORD が設定されていません。');
+    }
+
+    browser = await chromium.launch({ headless: true });
+    context = await browser.newContext({
+      recordVideo: { dir: './videos/' },
+      viewport: { width: 1280, height: 720 }
+    });
+    const page = await context.newPage();
+
+    console.log('ログインページに移動します...');
+    await page.goto('https://secure.xserver.ne.jp/xapanel/login/xmgame');
+    
+    await page.locator('#memberid').fill(email);
+    await page.locator('#user_password').fill(password);
+    await page.locator('input[value="ログインする"]').click();
+    console.log('✅ ログイン成功');
+    
+    await page.waitForURL('**/xmgame/index');
+    console.log('サーバー一覧ページに移動しました。');
+    await page.getByRole('link', { name: 'ゲーム管理' }).click();
+    console.log('✅ ゲーム管理ボタンをクリック');
+
+    await page.waitForURL('**/xmgame/game/index');
+    await page.getByRole('link', { name: 'アップグレード・期限延長' }).click();
+    console.log('✅ アップグレード・期限延長ボタンをクリック');
+    
+    await page.waitForURL('**/game/freeplan/extend/index');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    
+    const extendButton1 = page.getByRole('link', { name: '期限を延長する' });
+    const cannotExtendText = page.getByText('期間の延長は行えません');
+
+    if (await extendButton1.isVisible()) {
+      console.log('延長ボタン(1/3)が見つかりました。クリックします...');
+      await extendButton1.click();
       
-      - name: Install Japanese fonts
-        run: sudo apt-get update && sudo apt-get install -y fonts-ipafont
+      await page.waitForURL('**/game/freeplan/extend/input');
+      const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
+      await confirmButton.waitFor({ state: 'visible' });
+      await confirmButton.click();
+      console.log('✅ 確認画面に進むボタン(2/3)をクリックしました。');
 
-      - name: Install dependencies
-        run: npm install playwright-chromium node-fetch
+      await page.waitForURL('**/game/freeplan/extend/conf');
+      const finalExtendButton = page.getByRole('button', { name: '期限を延長する' });
+      await finalExtendButton.waitFor({ state: 'visible' });
+      await finalExtendButton.scrollIntoViewIfNeeded();
+      await finalExtendButton.click();
+      console.log('✅ 最終延長ボタン(3/3)をクリックしました。');
 
-      - name: Run Automation Script
-        env:
-          XSERVER_EMAIL: ${{ secrets.XSERVER_EMAIL }}
-          XSERVER_PASSWORD: ${{ secrets.XSERVER_PASSWORD }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: node run.js
+      await page.waitForLoadState('domcontentloaded');
+      const successMessage = 'サーバー期間の延長が完了しました！';
+      console.log(`🎉🎉🎉 ${successMessage}`);
+      await notifyDiscord('🎉成功🎉', successMessage);
 
-      - name: Send Video to Discord
-        if: always()
-        run: |
-          if ls videos/*.webm 1> /dev/null 2>&1; then
-            echo "Video found, preparing to upload..."
-            VIDEO_FILE=$(ls videos/*.webm | head -n 1)
-            curl -s -F "payload_json={\"content\":\"XServer GAMES 自動延長の実行結果ビデオです。\"}" -F "file1=@$VIDEO_FILE" ${{ secrets.DISCORD_WEBHOOK_URL }}
-            echo "Video upload command sent."
-          else
-            echo "No video file found to upload."
-          fi
+    } else if (await cannotExtendText.isVisible()) {
+      const infoMessage = 'まだ延長可能な期間ではありません。処理をスキップします。';
+      console.log(`🟡 ${infoMessage}`);
+      await notifyDiscord('🟡情報🟡', infoMessage);
+    } else {
+      throw new Error('予期しないページ状態です。延長ボタンまたはメッセージが見つかりませんでした。');
+    }
 
-      - name: Upload Video Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: automation-video
-          path: videos/
-          retention-days: 7
+  } catch (error) {
+    const errorMessage = `エラーが発生しました: ${error.message}`;
+    console.error(`❌ ${errorMessage}`);
+    await notifyDiscord('❌失敗❌', errorMessage);
+    process.exit(1);
+  } finally {
+    if (context) {
+      await context.close();
+    }
+    if (browser) {
+      await browser.close();
+    }
+    console.log('👋 プロセスを終了します。');
+  }
+})();
