@@ -30,9 +30,7 @@ jobs:
           XSERVER_PASSWORD: ${{ secrets.XSERVER_PASSWORD }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: node run.js
-      
-      # --- Discordへの動画送信ステップを削除しました ---
-
+ 
       - name: Upload Video Artifact
         if: always()
         uses: actions/upload-artifact@v4
