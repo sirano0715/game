@@ -31,20 +31,17 @@ const { chromium } = require('playwright-chromium');
     console.log('✅ ログイン成功');
 
     // --- 3. 延長処理の実行 ---
-    
-    // ★★★ ここを変更 ★★★
-    // 実際に表示されたページのURLを待つように修正
-    await page.waitForURL('**/xmgame/index');
-    
+    await page.waitForURL('**/xmgame/index'); // ログイン後のURL
     console.log('サーバー一覧ページに移動しました。');
     await page.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('✅ ゲーム管理ボタンをクリック');
 
-    await page.waitForURL('**/server/detail/**');
+    // ★★★ ここから、いただいたURLをすべて反映 ★★★
+    await page.waitForURL('**/xmgame/game/index'); // ゲーム管理クリック後のURL
     await page.getByRole('link', { name: 'アップグレード・期限延長' }).click();
     console.log('✅ アップグレード・期限延長ボタンをクリック');
     
-    await page.waitForLoadState('networkidle');
+    await page.waitForURL('**/game/freeplan/extend/index');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
     const extendButton1 = page.getByRole('link', { name: '期限を延長する' });
@@ -55,11 +52,13 @@ const { chromium } = require('playwright-chromium');
       console.log('延長ボタン(1/3)が見つかりました。クリックします...');
       await extendButton1.click();
       
+      await page.waitForURL('**/game/freeplan/extend/input');
       const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
       await confirmButton.waitFor({ state: 'visible' });
       await confirmButton.click();
       console.log('✅ 確認画面に進むボタン(2/3)をクリックしました。');
 
+      await page.waitForURL('**/game/freeplan/extend/conf');
       const finalExtendButton = page.getByRole('button', { name: '期限を延長する' });
       await finalExtendButton.waitFor({ state: 'visible' });
       await finalExtendButton.scrollIntoViewIfNeeded();
