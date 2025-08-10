@@ -1,5 +1,6 @@
 const { chromium } = require('playwright-chromium');
 
+// Discordに通知を送る関数
 async function notifyDiscord(fetch, status, message) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) {
@@ -83,15 +84,14 @@ async function notifyDiscord(fetch, status, message) {
     
     console.log('延長可能か、または延長不可メッセージがあるかを確認します...');
     const extendButtonLocator = page.getByRole('link', { name: '期限を延長する' });
-    const cannotExtendLocator = page.getByText('期間の延長は行えません');
+    // ★★★ ここをクラス名で指定するように修正 ★★★
+    const cannotExtendLocator = page.locator('.freePlanMessage');
 
-    // 「延長ボタン」か「延長不可メッセージ」のどちらかが表示されるまで待つ
     await Promise.race([
         extendButtonLocator.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {}),
         cannotExtendLocator.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
     ]);
 
-    // どちらが表示されたかを判断する
     if (await extendButtonLocator.isVisible()) {
       console.log('延長ボタン(1/3)が見つかりました。クリックします...');
       await extendButtonLocator.click();
@@ -121,7 +121,7 @@ async function notifyDiscord(fetch, status, message) {
     } else {
       throw new Error('予期しないページ状態です。延長ボタンまたは延長不可メッセージが見つかりませんでした。');
     }
-    
+
   } catch (error) {
     const errorMessage = `エラーが発生しました: ${error.message}`;
     console.error(`❌ ${errorMessage}`);
