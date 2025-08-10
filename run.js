@@ -9,9 +9,9 @@ async function notifyDiscord(fetch, status, message) {
   }
 
   const color = {
-    '🎉成功🎉': 65280, // 緑
-    '🟡情報🟡': 16776960, // 黄
-    '❌失敗❌': 16711680, // 赤
+    '成功': 65280, // 緑
+    '延長不要': 16776960, // 黄
+    '失敗': 16711680, // 赤
   }[status] || 8421504; // グレー
 
   const body = {
@@ -84,7 +84,6 @@ async function notifyDiscord(fetch, status, message) {
     
     console.log('延長可能か、または延長不可メッセージがあるかを確認します...');
     const extendButtonLocator = page.getByRole('link', { name: '期限を延長する' });
-    // ★★★ ここをクラス名で指定するように修正 ★★★
     const cannotExtendLocator = page.locator('.freePlanMessage');
 
     await Promise.race([
@@ -110,14 +109,14 @@ async function notifyDiscord(fetch, status, message) {
       console.log('✅ 最終延長ボタン(3/3)をクリックしました。');
 
       await page.waitForLoadState('domcontentloaded');
-      const successMessage = 'サーバー期間の延長が完了しました！';
+      const successMessage = 'サーバー期間の延長が完了しました。';
       console.log(`🎉🎉🎉 ${successMessage}`);
-      await notifyDiscord(fetch, '🎉成功🎉', successMessage);
+      await notifyDiscord(fetch, '成功', successMessage);
 
     } else if (await cannotExtendLocator.isVisible()) {
-      const infoMessage = 'まだ延長可能な期間ではありません。処理をスキップします。';
+      const infoMessage = '延長不要です。処理をスキップします。';
       console.log(`🟡 ${infoMessage}`);
-      await notifyDiscord(fetch, '🟡情報🟡', infoMessage);
+      await notifyDiscord(fetch, '🟡延長不要🟡', infoMessage);
     } else {
       throw new Error('予期しないページ状態です。延長ボタンまたは延長不可メッセージが見つかりませんでした。');
     }
