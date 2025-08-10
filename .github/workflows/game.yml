@@ -1,4 +1,4 @@
-name: Extend XServer GAMES Server
+name: XServer GAMEs
 
 on:
   schedule:
