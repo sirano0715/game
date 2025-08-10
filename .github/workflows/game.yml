@@ -1,43 +1,57 @@
 name: Extend XServer GAMES Server
 
 on:
-  # 毎日、日本時間の21時（UTCの12時）に自動実行
   schedule:
     - cron: '0 12 * * *'
   
-  # GitHubの画面から手動でも実行できるようにする
   workflow_dispatch:
 
 jobs:
   extend:
     runs-on: ubuntu-latest
     steps:
-      # 1. リポジトリのコードをチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Node.js環境をセットアップ
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+      
+      - name: Install Japanese fonts
+        run: sudo apt-get update && sudo apt-get install -y fonts-ipafont
 
-      # 3. Playwrightのライブラリをインストール
       - name: Install dependencies
-        run: npm install playwright-chromium
+        run: npm install playwright-chromium node-fetch
 
-      # 4. 自動化スクリプトを実行
       - name: Run Automation Script
         env:
           XSERVER_EMAIL: ${{ secrets.XSERVER_EMAIL }}
           XSERVER_PASSWORD: ${{ secrets.XSERVER_PASSWORD }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: node run.js
+      
+      # ★★★ ここからが追加の処理 ★★★
+      - name: Send Video to Discord
+        if: always() # 前のステップが成功しても失敗しても実行
+        run: |
+          # videosフォルダにwebmファイルがあるかチェック
+          if ls videos/*.webm 1> /dev/null 2>&1; then
+            echo "Video found, preparing to upload..."
+            # フォルダ内の最初のwebmファイルを取得
+            VIDEO_FILE=$(ls videos/*.webm | head -n 1)
+            # curlコマンドでDiscordに動画を送信
+            curl -s -F "payload_json={\"content\":\"XServer GAMES 自動延長の実行結果ビデオです。\"}" -F "file1=@$VIDEO_FILE" ${{ secrets.DISCORD_WEBHOOK_URL }}
+            echo "Video upload command sent."
+          else
+            echo "No video file found to upload."
+          fi
+      # ★★★ ここまでが追加の処理 ★★★
 
-      # 5. 実行結果の動画をアップロード
       - name: Upload Video Artifact
-        if: always() # 成功しても失敗しても、必ず実行
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: automation-video
           path: videos/
-          retention-days: 7 # 7日間保存
+          retention-days: 7
