@@ -31,22 +31,7 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: node run.js
       
-      # ★★★ ここからが追加の処理 ★★★
-      - name: Send Video to Discord
-        if: always() # 前のステップが成功しても失敗しても実行
-        run: |
-          # videosフォルダにwebmファイルがあるかチェック
-          if ls videos/*.webm 1> /dev/null 2>&1; then
-            echo "Video found, preparing to upload..."
-            # フォルダ内の最初のwebmファイルを取得
-            VIDEO_FILE=$(ls videos/*.webm | head -n 1)
-            # curlコマンドでDiscordに動画を送信
-            curl -s -F "payload_json={\"content\":\"XServer GAMES 自動延長の実行結果ビデオです。\"}" -F "file1=@$VIDEO_FILE" ${{ secrets.DISCORD_WEBHOOK_URL }}
-            echo "Video upload command sent."
-          else
-            echo "No video file found to upload."
-          fi
-      # ★★★ ここまでが追加の処理 ★★★
+      # --- Discordへの動画送信ステップを削除しました ---
 
       - name: Upload Video Artifact
         if: always()
