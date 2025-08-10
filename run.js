@@ -24,38 +24,45 @@ const { chromium } = require('playwright-chromium');
     // --- 2. ログイン処理 ---
     console.log('ログインページに移動します...');
     await page.goto('https://secure.xserver.ne.jp/xapanel/login/xmgame');
-    await page.locator('input[type="email"]').fill(email);
-    await page.locator('input[type="password"]').fill(password);
-    await page.getByRole('button', { name: 'ログインする' }).click();
+
+    // いただいたHTML情報に基づいてセレクターを修正
+    await page.locator('#memberid').fill(email);
+    await page.locator('#user_password').fill(password);
+    await page.locator('input[value="ログインする"]').click();
     console.log('✅ ログイン成功');
 
     // --- 3. 延長処理の実行 ---
     await page.waitForURL('**/server/list');
     console.log('サーバー一覧ページに移動しました。');
-    await page.getByRole('button', { name: 'ゲーム管理' }).click();
+    // "ゲーム管理" というテキストを持つリンクをクリック
+    await page.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('✅ ゲーム管理ボタンをクリック');
 
     await page.waitForURL('**/server/detail/**');
-    await page.getByRole('link', { name: 'アップグレード・期間延長' }).click();
-    console.log('✅ アップグレード・期間延長ボタンをクリック');
+    // "アップグレード・期限延長" というテキストを持つリンクをクリック
+    await page.getByRole('link', { name: 'アップグレード・期限延長' }).click();
+    console.log('✅ アップグレード・期限延長ボタンをクリック');
     
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
-    const extendButton = page.getByRole('button', { name: '期間を延長する' }).first();
+    // "期限を延長する" というテキストを持つリンク (1回目)
+    const extendButton1 = page.getByRole('link', { name: '期限を延長する' });
     const cannotExtendText = page.getByText('期間の延長は行えません');
 
     // --- 4. 条件分岐 ---
-    if (await extendButton.isVisible()) {
+    if (await extendButton1.isVisible()) {
       console.log('延長ボタン(1/3)が見つかりました。クリックします...');
-      await extendButton.click();
+      await extendButton1.click();
       
+      // "確認画面に進む" という名前のボタン
       const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
       await confirmButton.waitFor({ state: 'visible' });
       await confirmButton.click();
       console.log('✅ 確認画面に進むボタン(2/3)をクリックしました。');
 
-      const finalExtendButton = page.getByRole('button', { name: '期間を延長する' });
+      // "期限を延長する" という名前のボタン (最後)
+      const finalExtendButton = page.getByRole('button', { name: '期限を延長する' });
       await finalExtendButton.waitFor({ state: 'visible' });
       await finalExtendButton.scrollIntoViewIfNeeded();
       await finalExtendButton.click();
@@ -72,12 +79,10 @@ const { chromium } = require('playwright-chromium');
 
   } catch (error) {
     console.error('❌ エラーが発生しました:', error.message);
-    // エラーが発生した場合、プロセスを失敗で終了させる
     process.exit(1);
   } finally {
     // --- 5. 後処理 ---
     if (context) {
-      // 動画ファイルが正常に保存されるのを待つ
       await context.close();
     }
     if (browser) {
