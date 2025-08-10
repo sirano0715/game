@@ -116,7 +116,7 @@ async function notifyDiscord(fetch, status, message) {
     } else if (await cannotExtendLocator.isVisible()) {
       const infoMessage = '延長不要です。処理をスキップします。';
       console.log(`🟡 ${infoMessage}`);
-      await notifyDiscord(fetch, '🟡延長不要🟡', infoMessage);
+      await notifyDiscord(fetch, '延長不要', infoMessage);
     } else {
       throw new Error('予期しないページ状態です。延長ボタンまたは延長不可メッセージが見つかりませんでした。');
     }
@@ -124,7 +124,7 @@ async function notifyDiscord(fetch, status, message) {
   } catch (error) {
     const errorMessage = `エラーが発生しました: ${error.message}`;
     console.error(`❌ ${errorMessage}`);
-    await notifyDiscord(fetch, '❌失敗❌', errorMessage);
+    await notifyDiscord(fetch, '失敗', errorMessage);
     process.exit(1);
   } finally {
     if (context) {
