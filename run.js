@@ -16,7 +16,7 @@ async function notifyDiscord(fetch, status, message) {
 
   const body = {
     embeds: [{
-      title: `XServer GAMES 自動延長 (${status})`,
+      title: `XServer GAMEs 自動延長 (${status})`,
       description: message,
       color: color,
       timestamp: new Date(),
