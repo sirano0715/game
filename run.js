@@ -66,11 +66,11 @@ async function notifyDiscord(fetch, status, message, gameName) {
     await page.locator('input[value="ログインする"]').click();
     console.log('正常にログインが完了しました。');
     
-    // ★★★ waitForURL → waitForLoadState に変更 ★★★
-    await page.waitForLoadState('networkidle');
-    console.log('サーバー一覧ページに正常に移動しました。');
-
+    // ★★★ ここから待機方法を変更 ★★★
+    // 「無料サーバー」の行が表示されるまで待つ
     const freeServerRow = page.locator('tr:has(span.freeServerIco)');
+    await freeServerRow.waitFor();
+    console.log('サーバー一覧ページに正常に移動しました。');
     
     const gameNameElement = freeServerRow.locator('.svpGamesName');
     const fullText = await gameNameElement.textContent();
@@ -81,13 +81,13 @@ async function notifyDiscord(fetch, status, message, gameName) {
     await freeServerRow.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('無料サーバーの「ゲーム管理」ボタンを正常にクリックしました。');
 
-    // ★★★ waitForURL → waitForLoadState に変更 ★★★
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('link', { name: 'アップグレード・期限延長' }).click();
+    // 「アップグレード・期限延長」リンクが表示されるまで待つ
+    const upgradeLink = page.getByRole('link', { name: 'アップグレード・期限延長' });
+    await upgradeLink.waitFor();
+    await upgradeLink.click();
     console.log('アップグレード・期限延長ボタンを正常にクリックしました。');
     
-    // ★★★ waitForURL → waitForLoadState に変更 ★★★
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
     console.log('延長可能か、または延長不可メッセージがあるかを確認します。');
@@ -103,15 +103,13 @@ async function notifyDiscord(fetch, status, message, gameName) {
       console.log('延長ボタン(1/3)が正常に見つかりました。');
       await extendButtonLocator.click();
       
-      await page.waitForLoadState('networkidle');
       const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
-      await confirmButton.waitFor({ state: 'visible' });
+      await confirmButton.waitFor();
       await confirmButton.click();
       console.log('確認画面に進むボタン(2/3)を正常にクリックしました。');
 
-      await page.waitForLoadState('networkidle');
       const finalExtendButton = page.getByRole('button', { name: '期限を延長する' });
-      await finalExtendButton.waitFor({ state: 'visible' });
+      await finalExtendButton.waitFor();
       await finalExtendButton.scrollIntoViewIfNeeded();
       await finalExtendButton.click();
       console.log('最終延長ボタン(3/3)を正常にクリックしました。');
