@@ -13,7 +13,7 @@ async function notifyDiscord(fetch, status, message, gameName) {
 
   const color = { '成功': 65280, '失敗': 16711680 }[status] || 8421504;
 
-  const webhookUsername = gameName ? `Xserver GAMEs 更新情報 ${gameName}鯖` : 'Xserver GAMEs 更新情報';
+  const webhookUsername = gameName ? `Xserver GAMEs 更新情報 ${gameName}` : 'Xserver GAMEs 更新情報';
 
   const body = {
     username: webhookUsername,
