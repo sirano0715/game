@@ -66,12 +66,12 @@ async function notifyDiscord(fetch, status, message, gameName) {
     await page.locator('input[value="ログインする"]').click();
     console.log('正常にログインが完了しました。');
     
-    await page.waitForURL('**/xmgame/index');
+    // ★★★ waitForURL → waitForLoadState に変更 ★★★
+    await page.waitForLoadState('networkidle');
     console.log('サーバー一覧ページに正常に移動しました。');
 
     const freeServerRow = page.locator('tr:has(span.freeServerIco)');
-    await freeServerRow.waitFor({ state: 'visible', timeout: 10000 });
-
+    
     const gameNameElement = freeServerRow.locator('.svpGamesName');
     const fullText = await gameNameElement.textContent();
     const spanText = await gameNameElement.locator('.GamesType').textContent();
@@ -81,11 +81,13 @@ async function notifyDiscord(fetch, status, message, gameName) {
     await freeServerRow.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('無料サーバーの「ゲーム管理」ボタンを正常にクリックしました。');
 
-    await page.waitForURL('**/xmgame/game/index');
+    // ★★★ waitForURL → waitForLoadState に変更 ★★★
+    await page.waitForLoadState('networkidle');
     await page.getByRole('link', { name: 'アップグレード・期限延長' }).click();
     console.log('アップグレード・期限延長ボタンを正常にクリックしました。');
     
-    await page.waitForURL('**/game/freeplan/extend/index');
+    // ★★★ waitForURL → waitForLoadState に変更 ★★★
+    await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
     console.log('延長可能か、または延長不可メッセージがあるかを確認します。');
@@ -101,13 +103,13 @@ async function notifyDiscord(fetch, status, message, gameName) {
       console.log('延長ボタン(1/3)が正常に見つかりました。');
       await extendButtonLocator.click();
       
-      await page.waitForURL('**/game/freeplan/extend/input');
+      await page.waitForLoadState('networkidle');
       const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
       await confirmButton.waitFor({ state: 'visible' });
       await confirmButton.click();
       console.log('確認画面に進むボタン(2/3)を正常にクリックしました。');
 
-      await page.waitForURL('**/game/freeplan/extend/conf');
+      await page.waitForLoadState('networkidle');
       const finalExtendButton = page.getByRole('button', { name: '期限を延長する' });
       await finalExtendButton.waitFor({ state: 'visible' });
       await finalExtendButton.scrollIntoViewIfNeeded();
