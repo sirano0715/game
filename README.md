@@ -8,7 +8,7 @@
 # ②Discord更新用のwebhookを用意する。
 <img width="674" height="301" alt="image" src="https://github.com/user-attachments/assets/2b329afb-81e6-458a-a715-def408afa3fd" />
 
-# ③シークレット関数を準備する。
+# ③シークレットを準備する。
 **DISCORD_WEBHOOK_URL**=②で作成したURL
 
 **XSERVER_EMAIL=Xserver**のメールアドレス
