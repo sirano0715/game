@@ -9,11 +9,11 @@
 <img width="674" height="301" alt="image" src="https://github.com/user-attachments/assets/2b329afb-81e6-458a-a715-def408afa3fd" />
 
 # ③シークレット関数を準備する。
-DISCORD_WEBHOOK_URL=②で作成したURL
+**DISCORD_WEBHOOK_URL**=②で作成したURL
 
-XSERVER_EMAIL=Xserverのメールアドレス
+**XSERVER_EMAIL=Xserver**のメールアドレス
 
-XSERVER_PASSWORD=Xserverのパスワード
+**XSERVER_PASSWORD=Xserver**のパスワード
 
 # ④アクションを実行する。
 <img width="1541" height="257" alt="image" src="https://github.com/user-attachments/assets/ce43f917-cdac-4a69-938c-0aeff031bd0d" />
