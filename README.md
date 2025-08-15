@@ -10,7 +10,9 @@
 
 # ③シークレット関数を準備する。
 DISCORD_WEBHOOK_URL=②で作成したURL
+
 XSERVER_EMAIL=Xserverのメールアドレス
+
 XSERVER_PASSWORD=Xserverのパスワード
 
 # ④アクションを実行する。
