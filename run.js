@@ -12,8 +12,7 @@ async function notifyDiscord(fetch, status, message, gameName) {
   }
 
   const color = { '成功': 65280, '失敗': 16711680 }[status] || 8421504;
-
-  const webhookUsername = gameName ? `Xserver GAMEs 更新情報 ${gameName}` : 'Xserver GAMEs 更新情報';
+  const webhookUsername = gameName ? `Xserver GAMEs 更新情報 ${gameName}鯖` : 'Xserver GAMEs 更新情報';
 
   const body = {
     username: webhookUsername,
@@ -69,15 +68,16 @@ async function notifyDiscord(fetch, status, message, gameName) {
     
     await page.waitForURL('**/xmgame/index');
     console.log('サーバー一覧ページに正常に移動しました。');
-    const gameNameElement = page.locator('.svpGamesName');
-    await gameNameElement.waitFor({ state: 'visible', timeout: 5000 });
-    const fullText = await gameNameElement.textContent();
-    const spanText = await gameNameElement.locator('.GamesType').textContent();
-    // PC版などのカッコ部分を削除して整形
-    gameName = fullText.replace(spanText, '').trim(); 
-    console.log(`ゲーム名「${gameName}」を正常に取得しました。`);
 
     const freeServerRow = page.locator('tr:has(span.freeServerIco)');
+    await freeServerRow.waitFor({ state: 'visible', timeout: 10000 });
+
+    const gameNameElement = freeServerRow.locator('.svpGamesName');
+    const fullText = await gameNameElement.textContent();
+    const spanText = await gameNameElement.locator('.GamesType').textContent();
+    gameName = fullText.replace(spanText, '').trim();
+    console.log(`ゲーム名「${gameName}」を正常に取得しました。`);
+    
     await freeServerRow.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('無料サーバーの「ゲーム管理」ボタンを正常にクリックしました。');
 
@@ -122,7 +122,7 @@ async function notifyDiscord(fetch, status, message, gameName) {
     } else if (await cannotExtendLocator.isVisible()) {
       const infoMessage = 'まだ延長可能な期間ではありません。処理をスキップします。';
       console.log(`${infoMessage}`);
-      await notifyDiscord(fetch, '情報', infoMessage, gameName); 
+      await notifyDiscord(fetch, '情報', infoMessage, gameName);
     } else {
       throw new Error('予期しないページ状態です。延長ボタンまたは延長不可メッセージが見つかりませんでした。');
     }
