@@ -1,6 +1,6 @@
 const { chromium } = require('playwright-chromium');
 
-async function notifyDiscord(fetch, status, message, gameName) {
+async function notifyDiscord(fetch, status, message) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) {
     console.log('Discord Webhook URLが設定されていないため、通知をスキップします。');
@@ -12,10 +12,8 @@ async function notifyDiscord(fetch, status, message, gameName) {
   }
 
   const color = { '成功': 65280, '失敗': 16711680 }[status] || 8421504;
-  const webhookUsername = gameName ? `Xserver GAMEs 更新情報 ${gameName}鯖` : 'Xserver GAMEs 更新情報';
 
   const body = {
-    username: webhookUsername,
     embeds: [{
       title: `XServer GAMES 自動延長 (${status})`,
       description: message,
@@ -43,7 +41,6 @@ async function notifyDiscord(fetch, status, message, gameName) {
   
   let browser = null;
   let context = null;
-  let gameName = null;
   console.log('自動化プロセスを開始します...');
 
   try {
@@ -66,28 +63,18 @@ async function notifyDiscord(fetch, status, message, gameName) {
     await page.locator('input[value="ログインする"]').click();
     console.log('正常にログインが完了しました。');
     
-    // ★★★ ここから待機方法を変更 ★★★
-    // 「無料サーバー」の行が表示されるまで待つ
-    const freeServerRow = page.locator('tr:has(span.freeServerIco)');
-    await freeServerRow.waitFor();
+    await page.waitForURL('**/xmgame/index');
     console.log('サーバー一覧ページに正常に移動しました。');
-    
-    const gameNameElement = freeServerRow.locator('.svpGamesName');
-    const fullText = await gameNameElement.textContent();
-    const spanText = await gameNameElement.locator('.GamesType').textContent();
-    gameName = fullText.replace(spanText, '').trim();
-    console.log(`ゲーム名「${gameName}」を正常に取得しました。`);
-    
-    await freeServerRow.getByRole('link', { name: 'ゲーム管理' }).click();
-    console.log('無料サーバーの「ゲーム管理」ボタンを正常にクリックしました。');
 
-    // 「アップグレード・期限延長」リンクが表示されるまで待つ
-    const upgradeLink = page.getByRole('link', { name: 'アップグレード・期限延長' });
-    await upgradeLink.waitFor();
-    await upgradeLink.click();
+    // ★★★ 「無料サーバー」の行を探す処理を削除 ★★★
+    await page.getByRole('link', { name: 'ゲーム管理' }).click();
+    console.log('「ゲーム管理」ボタンを正常にクリックしました。');
+
+    await page.waitForURL('**/xmgame/game/index');
+    await page.getByRole('link', { name: 'アップグレード・期限延長' }).click();
     console.log('アップグレード・期限延長ボタンを正常にクリックしました。');
     
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForURL('**/game/freeplan/extend/index');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
     console.log('延長可能か、または延長不可メッセージがあるかを確認します。');
@@ -103,13 +90,15 @@ async function notifyDiscord(fetch, status, message, gameName) {
       console.log('延長ボタン(1/3)が正常に見つかりました。');
       await extendButtonLocator.click();
       
+      await page.waitForURL('**/game/freeplan/extend/input');
       const confirmButton = page.getByRole('button', { name: '確認画面に進む' });
-      await confirmButton.waitFor();
+      await confirmButton.waitFor({ state: 'visible' });
       await confirmButton.click();
       console.log('確認画面に進むボタン(2/3)を正常にクリックしました。');
 
+      await page.waitForURL('**/game/freeplan/extend/conf');
       const finalExtendButton = page.getByRole('button', { name: '期限を延長する' });
-      await finalExtendButton.waitFor();
+      await finalExtendButton.waitFor({ state: 'visible' });
       await finalExtendButton.scrollIntoViewIfNeeded();
       await finalExtendButton.click();
       console.log('最終延長ボタン(3/3)を正常にクリックしました。');
@@ -117,12 +106,12 @@ async function notifyDiscord(fetch, status, message, gameName) {
       await page.waitForLoadState('domcontentloaded');
       const successMessage = 'サーバー期間の延長が正常に完了しました！';
       console.log(`更新完了 ${successMessage}`);
-      await notifyDiscord(fetch, '成功', successMessage, gameName);
+      await notifyDiscord(fetch, '成功', successMessage);
 
     } else if (await cannotExtendLocator.isVisible()) {
       const infoMessage = 'まだ延長可能な期間ではありません。処理をスキップします。';
       console.log(`${infoMessage}`);
-      await notifyDiscord(fetch, '情報', infoMessage, gameName);
+      await notifyDiscord(fetch, '情報', infoMessage);
     } else {
       throw new Error('予期しないページ状態です。延長ボタンまたは延長不可メッセージが見つかりませんでした。');
     }
@@ -130,7 +119,7 @@ async function notifyDiscord(fetch, status, message, gameName) {
   } catch (error) {
     const errorMessage = `エラーが発生しました: ${error.message}`;
     console.error(`${errorMessage}`);
-    await notifyDiscord(fetch, '失敗', errorMessage, gameName);
+    await notifyDiscord(fetch, '失敗', errorMessage);
     process.exit(1);
   } finally {
     if (context) await context.close();
