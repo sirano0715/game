@@ -1,8 +1,8 @@
-name: XServer GAMEs
+name: Extend XServer GAMES Server
 
 on:
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '0 */3 * * *'
   
   workflow_dispatch:
 
@@ -30,7 +30,7 @@ jobs:
           XSERVER_PASSWORD: ${{ secrets.XSERVER_PASSWORD }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: node run.js
- 
+      
       - name: Upload Video Artifact
         if: always()
         uses: actions/upload-artifact@v4
