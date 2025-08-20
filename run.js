@@ -15,7 +15,7 @@ async function notifyDiscord(fetch, status, message, serverName = '') {
 
   const body = {
     username: serverName
-      ? `XServer GAMEs (${serverName}) 更新情報`
+      ? `XServer GAMEs ${serverName} 更新情報`
       : `XServer GAMEs 更新情報`,
     embeds: [{
       title: `処理結果: ${status}`,
