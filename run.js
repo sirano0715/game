@@ -13,13 +13,12 @@ async function notifyDiscord(fetch, status, message, serverName = '') {
 
   const color = { '成功': 65280, '失敗': 16711680 }[status] || 8421504;
 
-  const titleName = serverName
-    ? `XServer GAMEs (${serverName}) 更新情報 (${status})`
-    : `XServer GAMEs 更新情報 (${status})`;
-
   const body = {
+    username: serverName
+      ? `XServer GAMEs (${serverName}) 更新情報`
+      : `XServer GAMEs 更新情報`,
     embeds: [{
-      title: titleName,
+      title: `処理結果: ${status}`,
       description: message,
       color: color,
       timestamp: new Date(),
@@ -69,7 +68,6 @@ async function notifyDiscord(fetch, status, message, serverName = '') {
     await page.waitForURL('**/xmgame/index');
     console.log('サーバー一覧ページに正常に移動しました。');
 
-    // ★★★ 「無料サーバー」の行を探す処理は削除済み ★★★
     await page.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('「ゲーム管理」ボタンを正常にクリックしました。');
 
