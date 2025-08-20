@@ -1,6 +1,6 @@
 const { chromium } = require('playwright-chromium');
 
-async function notifyDiscord(fetch, status, message) {
+async function notifyDiscord(fetch, status, message, serverName = '') {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) {
     console.log('Discord Webhook URLが設定されていないため、通知をスキップします。');
@@ -13,9 +13,13 @@ async function notifyDiscord(fetch, status, message) {
 
   const color = { '成功': 65280, '失敗': 16711680 }[status] || 8421504;
 
+  const titleName = serverName
+    ? `XServer GAMEs (${serverName}) 更新情報 (${status})`
+    : `XServer GAMEs 更新情報 (${status})`;
+
   const body = {
     embeds: [{
-      title: `XServer GAMES 自動延長 (${status})`,
+      title: titleName,
       description: message,
       color: color,
       timestamp: new Date(),
@@ -34,7 +38,6 @@ async function notifyDiscord(fetch, status, message) {
     console.error('Discord通知中にエラーが発生しました:', error.message);
   }
 }
-
 
 (async () => {
   const { default: fetch } = await import('node-fetch');
@@ -66,7 +69,7 @@ async function notifyDiscord(fetch, status, message) {
     await page.waitForURL('**/xmgame/index');
     console.log('サーバー一覧ページに正常に移動しました。');
 
-    // ★★★ 「無料サーバー」の行を探す処理を削除 ★★★
+    // ★★★ 「無料サーバー」の行を探す処理は削除済み ★★★
     await page.getByRole('link', { name: 'ゲーム管理' }).click();
     console.log('「ゲーム管理」ボタンを正常にクリックしました。');
 
@@ -77,6 +80,10 @@ async function notifyDiscord(fetch, status, message) {
     await page.waitForURL('**/game/freeplan/extend/index');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     
+    // サーバー名を取得
+    const serverName = await page.locator('.svpGamesName').innerText();
+    console.log(`サーバー名を取得しました: ${serverName}`);
+
     console.log('延長可能か、または延長不可メッセージがあるかを確認します。');
     const extendButtonLocator = page.getByRole('link', { name: '期限を延長する' });
     const cannotExtendLocator = page.locator('.freePlanMessage');
@@ -106,12 +113,12 @@ async function notifyDiscord(fetch, status, message) {
       await page.waitForLoadState('domcontentloaded');
       const successMessage = 'サーバー期間の延長が正常に完了しました！';
       console.log(`更新完了 ${successMessage}`);
-      await notifyDiscord(fetch, '成功', successMessage);
+      await notifyDiscord(fetch, '成功', successMessage, serverName);
 
     } else if (await cannotExtendLocator.isVisible()) {
       const infoMessage = 'まだ延長可能な期間ではありません。処理をスキップします。';
       console.log(`${infoMessage}`);
-      await notifyDiscord(fetch, '情報', infoMessage);
+      await notifyDiscord(fetch, '情報', infoMessage, serverName);
     } else {
       throw new Error('予期しないページ状態です。延長ボタンまたは延長不可メッセージが見つかりませんでした。');
     }
